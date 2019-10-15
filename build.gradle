@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+group 'com.ebetzky.elim'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile 'org.junit.jupiter:junit-jupiter-api:5.5.2'
+    testCompile 'org.junit.jupiter:junit-jupiter:5.5.2'
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
