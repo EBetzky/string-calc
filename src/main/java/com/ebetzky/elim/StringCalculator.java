@@ -1,15 +1,9 @@
 package com.ebetzky.elim;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.ebetzky.elim.preprocessor.NumbersPreprocessor;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.unmodifiableList;
-import static java.util.Objects.isNull;
+import java.util.List;
+
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -36,87 +30,17 @@ import static java.util.stream.Collectors.toList;
 
 public class StringCalculator {
 
-    private static final String DEFAULT_DELIMITER = ",";
-    private static final String NEW_LINE = "\n";
-    private static final String DELIMITER_PREFIX = "//";
-    private static final String DELIMITER_OPEN_TAG = "[";
-    private static final String DELIMITER_CLOSE_TAG = "]";
-    private static final Set<Character> REGEX_RESERVED_CHARS = new HashSet<>(asList('[', '\\', '^', '$', '.', '|', '?', '*', '+', '(', ')', '{', '}'));
     private static final int UPPER_LIMIT = 1000;
 
-
     public int add(final String numbers) {
-        validate(isNull(numbers), "Cannot calculate the sum from null numbers argument.");
 
-        boolean isHeaderDefined = numbers.startsWith(DELIMITER_PREFIX);
-        List<String> delimiters = isHeaderDefined ? extractDelimiters(numbers) : singletonList(DEFAULT_DELIMITER);
-        String body = isHeaderDefined ? extractBody(numbers) : numbers;
-
-        List<String> delimitedNumbers = splitNumbers(delimiters, singletonList(body));
-        validate(containsInvalidSequence(delimitedNumbers),
-                "Invalid format in numbers: addends should be separated by either new line or delimiter, but not both.");
-
-        List<Integer> addends = prepareNumberValues(delimitedNumbers);
+        List<Integer> addends = (new NumbersPreprocessor(numbers)).acquireNumbers();
         validateNegatives(addends);
 
         final int initialSum = 0;
         return addends.stream()
-                .filter(this::qualifiesForAddition)
+                .filter(this::isGreaterThanLimit)
                 .reduce(initialSum, Integer::sum);
-    }
-
-    private List<String> extractDelimiters(String numbers) {
-        List<String> extractedDelimiters = new ArrayList<>();
-        String header = numbers.substring(0, numbers.indexOf(NEW_LINE)).substring(DELIMITER_PREFIX.length());
-
-        if (doesContainBracketDelimiter(header)) {
-            while (doesContainBracketDelimiter(header)) {
-                int openTagPosition = header.indexOf(DELIMITER_OPEN_TAG);
-                int closeTagPosition = header.indexOf(DELIMITER_CLOSE_TAG);
-
-                String extractedDelimiter = header.substring(openTagPosition + 1, closeTagPosition);
-                extractedDelimiters.add(extractedDelimiter);
-                header = header.substring(closeTagPosition + 1);
-            }
-        } else {
-            extractedDelimiters.add(header);
-        }
-
-        return unmodifiableList(
-                extractedDelimiters.stream().
-                        map(this::escapeRegexChars).
-                        collect(toList()));
-    }
-
-    private String extractBody(String numbers) {
-        return numbers.substring(numbers.indexOf(NEW_LINE) + 1);
-    }
-
-    private List<String> splitNumbers(List<String> delimiters, List<String> tokens) {
-        final List<String> result = new ArrayList<>();
-        final String firstDelimiter = delimiters.get(0);
-        final int processedDelimiterCount = 1;
-
-        for (String token : tokens) {
-            result.addAll(asList(token.split(firstDelimiter)));
-        }
-
-        return delimiters.size() > processedDelimiterCount ? splitNumbers(delimiters.subList(1, delimiters.size()), result) : result;
-    }
-
-    private List<Integer> prepareNumberValues(List<String> numbers) {
-        return numbers.stream()
-                .map(s -> s.split(NEW_LINE))
-                .flatMap(Arrays::stream)
-                .filter(s -> !s.isEmpty())
-                .map(Integer::parseInt)
-                .collect(toList());
-    }
-
-    private void validate(boolean condition, String message) {
-        if (condition) {
-            throw new IllegalArgumentException(message);
-        }
     }
 
     private void validateNegatives(List<Integer> addends) {
@@ -127,34 +51,11 @@ public class StringCalculator {
         }
     }
 
-    private String escapeRegexChars(String delimiter) {
-        StringBuilder escapedDelimiter = new StringBuilder();
-        
-        for (char c : delimiter.toCharArray()) {
-            if (REGEX_RESERVED_CHARS.contains(c)) {
-                escapedDelimiter.append('\\').append(c);
-            } else {
-                escapedDelimiter.append(c);
-            }
-        }
-
-        return escapedDelimiter.toString();
-    }
-
-    private boolean doesContainBracketDelimiter(String header) {
-        return header.contains(DELIMITER_OPEN_TAG) && header.contains(DELIMITER_CLOSE_TAG);
-    }
-
     private boolean isNegative(Integer i) {
         return i < 0;
     }
 
-    private boolean qualifiesForAddition(Integer i) {
+    private boolean isGreaterThanLimit(Integer i) {
         return i <= UPPER_LIMIT;
     }
-
-    private boolean containsInvalidSequence(List<String> numbers) {
-        return numbers.stream().anyMatch(s -> s.startsWith(NEW_LINE) || s.endsWith(NEW_LINE));
-    }
-
 }

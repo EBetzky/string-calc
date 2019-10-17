@@ -37,7 +37,8 @@ class StringCalculatorTest {
                 Arguments.of("//[***]\n1***2***3", 6),
                 Arguments.of("//[%%]\n1%%2%%3%%4", 10),
                 Arguments.of("//[%%][***]\n1***2%%3***4", 10),
-                Arguments.of("//[%%][***][&]\n1***2%%3&4", 10)
+                Arguments.of("//[%%][***][&]\n1***2%%3&4", 10),
+                Arguments.of("//[%%][***][&]\n1***2%%3&2000", 6)
         );
     }
 
